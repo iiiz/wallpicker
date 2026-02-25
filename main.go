@@ -1,6 +1,9 @@
 package main
 
 import (
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -18,21 +21,24 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 	"github.com/alexflint/go-arg"
+	"golang.org/x/image/draw"
 )
 
 type File struct {
-	Path string
-	Name string
+	Path      string
+	Name      string
+	Extension string
 }
 
 var args struct {
 	Persist bool   `arg:"-p, --persist" help:"Persist, remain after choosing a wallpaper."`
-	Command string `arg:"-c, --command" default:"feh --bg-fill" help:"Settings command, expects a command to run [command] [image path]."`
+	WithExt bool   `arg:"-e, --inc-extension" help:"Include file extension as second argument to the target command or script. ie ($2)"`
+	Command string `arg:"-c, --command" default:"feh --bg-fill" help:"Settings command, expects a command to run [command] [image path] [~extension~]."`
 	Dir     string `arg:"positional"`
 }
 
 func main() {
-	myApp := app.New()
+	myApp := app.NewWithID("iiiz.wallpicker")
 	myWindow := myApp.NewWindow("WallPicker")
 	arg.MustParse(&args)
 
@@ -87,7 +93,7 @@ func loadMainContent(files []File, window fyne.Window, progress *widget.Progress
 		close(done)
 
 		// Give the ui enough time to update progress
-		time.Sleep(time.Millisecond * 20)
+		time.Sleep(time.Millisecond * 10)
 		window.SetContent(sc)
 	}()
 
@@ -102,7 +108,9 @@ func loadMainContent(files []File, window fyne.Window, progress *widget.Progress
 func loadImage(f File, c *fyne.Container, wg *sync.WaitGroup, done chan<- bool) {
 	defer wg.Done()
 
-	ci := NewClickableImage(f.Path)
+	image := getRescaledImage(f)
+
+	ci := NewClickableImage(image)
 	ci.image.SetMinSize(fyne.NewSize(550, 200))
 	ci.OnClick = func() {
 		setWallpaper(f)
@@ -114,11 +122,35 @@ func loadImage(f File, c *fyne.Container, wg *sync.WaitGroup, done chan<- bool) 
 	done <- true
 }
 
+func getRescaledImage(f File) image.Image {
+	file, _ := os.Open(f.Path)
+	defer file.Close()
+
+	var original image.Image
+
+	switch f.Extension {
+	case ".jpeg", ".jpg":
+		original, _ = jpeg.Decode(file)
+	case ".png":
+		original, _ = png.Decode(file)
+	}
+
+	scaled := image.NewRGBA(image.Rect(0, 0, original.Bounds().Max.X/8, original.Bounds().Max.Y/8))
+
+	draw.NearestNeighbor.Scale(scaled, scaled.Rect, original, original.Bounds(), draw.Over, nil)
+
+	return scaled
+}
+
 func setWallpaper(file File) {
 	commandFields := strings.Fields(args.Command)
 	cmdName := commandFields[0]
 	cmdArgs := commandFields[1:]
 	cmdArgs = append(cmdArgs, file.Path)
+
+	if args.WithExt {
+		cmdArgs = append(cmdArgs, file.Extension)
+	}
 
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Start()
@@ -140,8 +172,9 @@ func getAllowedFiles(dir string) []File {
 			stat, _ := os.Stat(path)
 
 			files = append(files, File{
-				Path: path,
-				Name: stat.Name(),
+				Path:      path,
+				Name:      stat.Name(),
+				Extension: filepath.Ext(path),
 			})
 		}
 
@@ -180,13 +213,14 @@ type ClickableImage struct {
 	OnClick func()
 }
 
-func NewClickableImage(file string) *ClickableImage {
-	img := canvas.NewImageFromFile(file)
+func NewClickableImage(image image.Image) *ClickableImage {
+	canvasImage := canvas.NewImageFromImage(image)
 
-	ci := &ClickableImage{image: img}
+	ci := &ClickableImage{image: canvasImage}
 	ci.image.ScaleMode = canvas.ImageScaleFastest
 	ci.image.FillMode = canvas.ImageFillContain
 	ci.ExtendBaseWidget(ci)
+
 	return ci
 }
 
