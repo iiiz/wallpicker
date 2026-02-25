@@ -7,4 +7,4 @@ build:
 	go build -o bin/wallpicker main.go
 
 install:
-	cp bin/wallpicker ~/.local/bin/wallpicker
+	sudo cp ./bin/wallpicker /usr/bin/wallpicker
