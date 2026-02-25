@@ -5,15 +5,16 @@ Simple wallpaper picker utility.
 ![wallpicker](./screenshot.png)
 
 ```
-Usage: wallpicker [--persist] [--command COMMAND] [DIR]
+Usage: wallpicker [--persist] [--inc-extension] [--command COMMAND] [DIR]
 
 Positional arguments:
   DIR
 
 Options:
   --persist, -p          Persist, remain after choosing a wallpaper.
+  --inc-extension, -e    Include file extension as second argument to the target command or script. ie ($2)
   --command COMMAND, -c COMMAND
-                         Settings command, expects a command to run [command] [image path]. [default: feh --bg-fill]
+                         Settings command, expects a command to run [command] [image path] [~extension~]. [default: feh --bg-fill]
   --help, -h             display this help and exit
 ```
 
@@ -23,6 +24,7 @@ Options:
 - [Setup](#setup)
 - [Install](#install)
 - [Usage](#usage)
+- [Hyprpaper Example](#hyprpaper-config-example)
 - [Why Another Wallpaper picker?](#why-another-wallpaper-picker)
 - [Contributing](#contributing)
 
@@ -52,9 +54,11 @@ make build
 
 ## Install
 
-Install location is `~/.local/bin/wallpicker`
+Install location is `/usr/bin/wallpicker`
 
 ```sh
+go mod download
+
 # clean & build
 make
 make install
@@ -69,13 +73,42 @@ To run the project:
 go run . /some/dir/with/wallpapers
 
 # build
+make
 ./bin/wallpicker /some/dir/with/wallpapers
 ```
 
 ## Why another wallpaper picker
 
-I use a very minimal XMonad desktop config and wanted a visual wallpaper picker to bind to a shortcut.
+I use a very minimal ~XMonad~ hyprland desktop config and wanted a visual wallpaper picker to bind to a shortcut.
 Other options didn't really fit what I was looking for so here we are. ¯\_(ツ)\_/¯
+
+## Hyprpaper config example
+
+For single monitor or mirrored. `wallpicker -c ~/.wallpaper/script/set.sh ~/Pictures/wallpapers`
+
+```sh
+#!/bin/bash
+
+hyprctl hyprpaper wallpaper "DP-1,$1,cover"
+```
+
+For multi monitor setup. `wallpicker -e -c ~/.wallpaper/script/set.sh ~/Pictures/wallpapers`
+
+```sh
+#!/bin/bash
+
+IMAGE_PATH=$1
+IMAGE_EXT=$2
+
+# Clean up dir of type and convert to match monitors
+rm ~/.wallpaper/*$IMAGE_EXT
+magick $IMAGE_PATH -crop 33.33%x100% ~/.wallpaper/wall$IMAGE_EXT
+
+# set wallpaper
+hyprctl hyprpaper wallpaper "DP-2,/home/iiiz/.wallpaper/wall-0$IMAGE_EXT,cover"
+hyprctl hyprpaper wallpaper "DP-3,/home/iiiz/.wallpaper/wall-1$IMAGE_EXT,cover"
+hyprctl hyprpaper wallpaper "DP-1,/home/iiiz/.wallpaper/wall-2$IMAGE_EXT,cover"
+```
 
 ## Contributing
 
