@@ -14,6 +14,7 @@ import (
 	"github.com/alexflint/go-arg"
 
 	"wallpaper_picker/lib"
+	"wallpaper_picker/lib/containers"
 	"wallpaper_picker/lib/widgets"
 )
 
@@ -81,7 +82,8 @@ func loadMainContent(files []lib.File, window fyne.Window, progress *widget.Prog
 		wpContent = container.New(layout.NewVBoxLayout())
 	}
 
-	sc := container.NewScroll(wpContent)
+	// increased scroll factor, library default is too slow
+	sc := containers.NewScaledScroll(fyne.ScrollVerticalOnly, 2.3, wpContent)
 
 	for _, file := range files {
 		go loadImage(file, wpContent, &wg, done)
@@ -94,7 +96,7 @@ func loadMainContent(files []lib.File, window fyne.Window, progress *widget.Prog
 		// Give the ui enough time to update progress
 		time.Sleep(time.Millisecond * 10)
 		fyne.Do(func() {
-			window.Resize(fyne.NewSize(600, 340))
+			window.Resize(fyne.NewSize(600, 486))
 			window.SetContent(sc)
 		})
 	}()
@@ -131,7 +133,6 @@ func loadImage(f lib.File, c *fyne.Container, wg *sync.WaitGroup, done chan<- bo
 	if args.Grid {
 		ci.SetMinSize(fyne.NewSize(186, 186))
 	} else {
-		// ci.SetMinSize(fyne.NewSize(550, 200))
 		ci.SetMinSize(fyne.NewSize(576, 162))
 	}
 
