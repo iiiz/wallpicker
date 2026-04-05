@@ -2,15 +2,16 @@
 
 Simple wallpaper picker utility.
 
-![wallpicker](./screenshot.png)
+![wallpicker](./preview.gif)
 
 ```
-Usage: wallpicker [--persist] [--inc-extension] [--command COMMAND] [DIR]
+Usage: wallpicker [--grid] [--persist] [--inc-extension] [--command COMMAND] [DIR]
 
 Positional arguments:
   DIR
 
 Options:
+  --grid, -g             Display wallpapers in a grid.
   --persist, -p          Persist, remain after choosing a wallpaper.
   --inc-extension, -e    Include file extension as second argument to the target command or script. ie ($2)
   --command COMMAND, -c COMMAND
@@ -32,6 +33,7 @@ Options:
 
 - Persist option, remains open until closed. For when you can't make up your mind. :)
 - Configurable command. Defaults to `feh --bg-fill` but can be configured to any command of your choice.
+- Display wallpaper previews in a grid or wide list layout.
 
 ## Setup
 
@@ -54,7 +56,7 @@ make build
 
 ## Install
 
-Install location is `/usr/bin/wallpicker`
+Default install location is `/usr/bin/wallpicker`
 
 ```sh
 go mod download
@@ -74,13 +76,10 @@ go run . /some/dir/with/wallpapers
 
 # build
 make
+
+# run
 ./bin/wallpicker /some/dir/with/wallpapers
 ```
-
-## Why another wallpaper picker
-
-I use a very minimal ~XMonad~ hyprland desktop config and wanted a visual wallpaper picker to bind to a shortcut.
-Other options didn't really fit what I was looking for so here we are. ¯\_(ツ)\_/¯
 
 ## Hyprpaper config example
 
@@ -102,13 +101,18 @@ IMAGE_EXT=$2
 
 # Clean up dir of type and convert to match monitors
 rm ~/.wallpaper/*$IMAGE_EXT
-magick $IMAGE_PATH -crop 33.33%x100% ~/.wallpaper/wall$IMAGE_EXT
+magick "$IMAGE_PATH" -crop 33.33%x100% ~/.wallpaper/wall$IMAGE_EXT
 
 # set wallpaper
 hyprctl hyprpaper wallpaper "DP-2,/home/iiiz/.wallpaper/wall-0$IMAGE_EXT,cover"
 hyprctl hyprpaper wallpaper "DP-3,/home/iiiz/.wallpaper/wall-1$IMAGE_EXT,cover"
 hyprctl hyprpaper wallpaper "DP-1,/home/iiiz/.wallpaper/wall-2$IMAGE_EXT,cover"
 ```
+
+## Why another wallpaper picker
+
+I use a very minimal ~XMonad~ hyprland desktop config and wanted a visual wallpaper picker to bind to a shortcut.
+Other options didn't really fit what I was looking for so here we are. ¯\_(ツ)\_/¯
 
 ## Contributing
 
