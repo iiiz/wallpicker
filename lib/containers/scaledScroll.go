@@ -9,12 +9,15 @@ import (
 	"fyne.io/fyne/v2/container"
 )
 
+// Tuning constants for the smoothing animation.
 const (
 	easeFriction = 0.20
 	easeSnap     = 0.5
 	easeTickHz   = 60
 )
 
+// ScaledScroll is a scroll container that applies a scale factor to incoming
+// scroll deltas and eases the view to the target offset for smooth scrolling.
 type ScaledScroll struct {
 	*container.Scroll
 
@@ -25,6 +28,9 @@ type ScaledScroll struct {
 	mu        sync.Mutex
 }
 
+// NewScaledScroll returns a scroll container that multiplies the incoming
+// scroll delta by the given scale and eases the view toward the target
+// offset for smooth scrolling.
 func NewScaledScroll(direction fyne.ScrollDirection, scale float32, content fyne.CanvasObject) *ScaledScroll {
 	s := &ScaledScroll{
 		Scroll: &container.Scroll{
@@ -45,6 +51,9 @@ func NewScaledScroll(direction fyne.ScrollDirection, scale float32, content fyne
 	return s
 }
 
+// Scrolled accumulates the scaled delta from the input device into the
+// target offset and flags the smoothing loop so the view eases toward it.
+// Deltas are negated to match fyne's scroll direction convention.
 func (s *ScaledScroll) Scrolled(event *fyne.ScrollEvent) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -72,6 +81,9 @@ func (s *ScaledScroll) smoothLoop() {
 	}
 }
 
+// animate runs on the UI thread, clamping the target to the scrollable
+// bounds and easing the current offset one step toward it. The smoothing
+// flag is cleared once the view has reached the target.
 func (s *ScaledScroll) animate() {
 	s.mu.Lock()
 	if !s.smoothing {
@@ -95,6 +107,8 @@ func (s *ScaledScroll) animate() {
 	s.mu.Unlock()
 }
 
+// easeAxis moves the offset a fixed fraction of the remaining distance to the
+// target each frame, snapping to the target once the gap falls below easeSnap.
 func (s *ScaledScroll) easeAxis(offset, target float32) float32 {
 	next := offset + (target-offset)*easeFriction
 	if math.Abs(float64(target-next)) < easeSnap {
@@ -103,6 +117,8 @@ func (s *ScaledScroll) easeAxis(offset, target float32) float32 {
 	return next
 }
 
+// clampTarget constrains the target offset to the scrollable range so the
+// view cannot ease past the content bounds.
 func (s *ScaledScroll) clampTarget() {
 	size := s.Size()
 	min := s.Content.MinSize()
@@ -111,6 +127,7 @@ func (s *ScaledScroll) clampTarget() {
 	s.target.Y = clamp(s.target.Y, 0, fyne.Max(0, min.Height-size.Height))
 }
 
+// clamp bounds v to the inclusive range [lo, hi].
 func clamp(v, lo, hi float32) float32 {
 	return fyne.Min(fyne.Max(v, lo), hi)
 }
